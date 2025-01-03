@@ -1,0 +1,14 @@
+name: PushPls
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - name: git pull
+        run: cd /Users/conorvickers/docdocgoose && git pull
+      - name: build ios
+        run: cd /Users/conorvickers/docdocgoose && npm run cap
+      - name: upload fastlane
+        run: cd /Users/conorvickers/docdocgoose/ios/App && fastlane beta
