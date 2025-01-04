@@ -9,6 +9,7 @@ jobs:
       - name: git pull
         run: cd /Users/conorvickers/docdocgoose && git pull
       - name: build ios
-        run: cd /Users/conorvickers/docdocgoose && npm run cap
+        run: cd /Users/conorvickers/docdocgoose && npm run build && npx cap sync
+
       - name: upload fastlane
         run: cd /Users/conorvickers/docdocgoose/ios/App && fastlane beta
