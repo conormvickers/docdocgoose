@@ -13,6 +13,8 @@
 # testing
 /coverage
 
+ios/
+
 # next.js
 /.next/
 /out/
