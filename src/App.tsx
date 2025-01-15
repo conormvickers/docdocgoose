@@ -1,34 +1,30 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
+import Box from "@mui/material/Box";
+import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
+import { TreeItem } from "@mui/x-tree-view/TreeItem";
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Box sx={{ minHeight: 352, minWidth: 250 }}>
+        <SimpleTreeView>
+          <TreeItem itemId="grid" label="Data Grid">
+            <TreeItem itemId="grid-community" label="@mui/x-data-grid" />
+            <TreeItem itemId="grid-pro" label="@mui/x-data-grid-pro" />
+            <TreeItem itemId="grid-premium" label="@mui/x-data-grid-premium" />
+          </TreeItem>
+          <TreeItem itemId="pickers" label="Date and Time Pickers">
+            <TreeItem itemId="pickers-community" label="@mui/x-date-pickers" />
+            <TreeItem itemId="pickers-pro" label="@mui/x-date-pickers-pro" />
+          </TreeItem>
+          <TreeItem itemId="charts" label="Charts">
+            <TreeItem itemId="charts-community" label="@mui/x-charts" />
+          </TreeItem>
+          <TreeItem itemId="tree-view" label="Tree View">
+            <TreeItem itemId="tree-view-community" label="@mui/x-tree-view" />
+          </TreeItem>
+        </SimpleTreeView>
+      </Box>
     </>
   );
 }
