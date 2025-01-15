@@ -9,6 +9,7 @@ lerna-debug.log*
 
 ios/
 android/
+runner/
 
 node_modules
 dist
