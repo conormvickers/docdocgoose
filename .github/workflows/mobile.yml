@@ -7,7 +7,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: git pull
-        run: cd /Users/conorvickers/docdocgoose && git pull
+        run: cd /Users/conorvickers/docdocgoose && git pull && npm install
       - name: build ios
         run: cd /Users/conorvickers/docdocgoose && npm run build && npx cap sync
 
