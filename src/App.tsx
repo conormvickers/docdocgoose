@@ -7,7 +7,7 @@ function App() {
     <>
       <Box sx={{ minHeight: 352, minWidth: 250 }}>
         <SimpleTreeView>
-          <TreeItem itemId="grid" label="Data Grid">
+          <TreeItem itemId="grid" label="Hello There Grid">
             <TreeItem itemId="grid-community" label="@mui/x-data-grid" />
             <TreeItem itemId="grid-pro" label="@mui/x-data-grid-pro" />
             <TreeItem itemId="grid-premium" label="@mui/x-data-grid-premium" />
