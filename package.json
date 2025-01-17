@@ -17,6 +17,7 @@
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^6.4.0",
     "@mui/x-tree-view": "^7.23.6",
+    "pocketbase": "^0.25.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
