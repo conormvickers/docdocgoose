@@ -1,9 +1,9 @@
-import CustomStyling from "./Tree/Tree";
+import MyTreeView from "./Tree/Tree";
 
 function App() {
   return (
     <>
-      <CustomStyling />
+      <MyTreeView />
     </>
   );
 }
