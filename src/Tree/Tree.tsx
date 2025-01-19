@@ -1,13 +1,10 @@
 import * as React from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import Button from "@mui/material/Button";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import CheckIcon from "@mui/icons-material/Check";
 
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
-import { TreeViewBaseItem, TreeViewItemId } from "@mui/x-tree-view/models";
+import { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import {
   TreeItem2Checkbox,
   TreeItem2Content,
@@ -26,14 +23,12 @@ import {
   useTreeItem2Utils,
   useTreeViewApiRef,
 } from "@mui/x-tree-view";
-import { IconButton, styled } from "@mui/material";
+import { IconButton, LinearProgress, styled } from "@mui/material";
 
 export default function MyTreeView() {
   const apiRef = useTreeViewApiRef();
 
-  const [selectedItems, setSelectedItems] = React.useState<string[]>([
-    "charts",
-  ]);
+  const [selectedItems, setSelectedItems] = React.useState<string[]>([]);
 
   const initialProducts: TreeViewBaseItem[] = [
     {
@@ -104,14 +99,17 @@ export default function MyTreeView() {
           display: "flex",
           alignItems: "center",
           gap: 2,
-          justifyContent: "space-between",
+          justifyContent: "start",
         }}
       >
         {children}
         {
           <IconButton
             size="small"
-            onClick={toggleItemEditing}
+            onClick={(event) => {
+              event.stopPropagation();
+              toggleItemEditing();
+            }}
             sx={{ color: "text.secondary" }}
           >
             <EditOutlinedIcon fontSize="small" />
@@ -169,15 +167,14 @@ export default function MyTreeView() {
     } = useTreeItem2({ id, itemId, children, label, disabled, rootRef: ref });
     const item = apiRef.current!.getItem(itemId);
     const childlist = getItemDescendantsIds(item);
-    const childnum = childlist.filter(
-      (id) => !selectedItems.includes(id)
+    const childnum = childlist.filter((id) =>
+      selectedItems.includes(id)
     ).length;
 
     const { interactions } = useTreeItem2Utils({
       itemId: props.itemId,
       children: props.children,
     });
-
     return (
       <TreeItem2Provider itemId={itemId}>
         <TreeItem2Root {...getRootProps(other)}>
@@ -185,38 +182,33 @@ export default function MyTreeView() {
             <TreeItem2IconContainer {...getIconContainerProps()}>
               <TreeItem2Icon status={status} />
             </TreeItem2IconContainer>
-            <Box sx={{ flexGrow: 1, display: "flex", gap: 1 }}>
-              <TreeItem2Checkbox {...getCheckboxProps()} />
-              {childnum}
-              <Button
-                size="small"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setItems((items) => {
-                    const newItems = [...items];
-                    newItems.push({
-                      id: "tree-view-sdfwoeihf",
-                      label: "@HERADGS",
-                    });
-                    return newItems;
-                  });
-                }}
-              >
-                +
-              </Button>
-              {status.editing ? (
-                <CustomLabelInput {...getLabelInputProps()} />
-              ) : (
-                <CustomLabel
-                  {...getLabelProps()}
-                  onDoubleClick={(event) => {
-                    event.stopPropagation();
-                  }}
-                  expandItem={interactions.handleExpansion}
-                  toggleItemEditing={interactions.toggleItemEditing}
+            <Stack>
+              {childlist.length > 0 && (
+                <LinearProgress
+                  variant="determinate"
+                  value={(childnum / childlist.length) * 100}
                 />
               )}
-            </Box>
+              <Box sx={{ flexGrow: 1, display: "flex", gap: 1 }}>
+                <TreeItem2Checkbox
+                  {...getCheckboxProps()}
+                  visible={childlist.length > 0 ? false : true}
+                />
+
+                {status.editing ? (
+                  <CustomLabelInput {...getLabelInputProps()} />
+                ) : (
+                  <CustomLabel
+                    {...getLabelProps()}
+                    onDoubleClick={(event) => {
+                      event.stopPropagation();
+                    }}
+                    expandItem={interactions.handleExpansion}
+                    toggleItemEditing={interactions.toggleItemEditing}
+                  />
+                )}
+              </Box>
+            </Stack>
             <TreeItem2DragAndDropOverlay {...getDragAndDropOverlayProps()} />
           </CustomTreeItemContent>
           {children && (
@@ -228,7 +220,7 @@ export default function MyTreeView() {
   });
 
   const handleSelectedItemsChange = (
-    event: React.SyntheticEvent,
+    _event: React.SyntheticEvent,
     ids: string[]
   ) => {
     setSelectedItems(ids);
@@ -262,6 +254,7 @@ export default function MyTreeView() {
           multiSelect
           checkboxSelection
           isItemEditable
+          expansionTrigger="content"
           experimentalFeatures={{ labelEditing: true }}
           onItemLabelChange={(id, label) => {
             handleItemLabelChange(id, label);
