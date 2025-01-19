@@ -2,7 +2,7 @@ import * as React from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-
+import { v4 as uuidv4 } from "uuid";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import {
@@ -24,43 +24,21 @@ import {
   useTreeViewApiRef,
 } from "@mui/x-tree-view";
 import { IconButton, LinearProgress, styled } from "@mui/material";
+import { Add } from "@mui/icons-material";
 
-export default function MyTreeView() {
+interface MyTreeViewProps {
+  passedItems: TreeViewBaseItem[];
+  passedSelectedItems: string[];
+  itemsChangedCallback: (items: object, selectedItems: string[]) => void;
+}
+export default function MyTreeView(props: MyTreeViewProps) {
   const apiRef = useTreeViewApiRef();
 
-  const [selectedItems, setSelectedItems] = React.useState<string[]>([]);
+  const [selectedItems, setSelectedItems] = React.useState<string[]>(
+    props.passedSelectedItems
+  );
 
-  const initialProducts: TreeViewBaseItem[] = [
-    {
-      id: "grid",
-      label: "Data Grid",
-      children: [
-        { id: "grid-community", label: "@mui/x-data-grid" },
-        { id: "grid-pro", label: "@mui/x-data-grid-pro" },
-        { id: "grid-premium", label: "@mui/x-data-grid-premium" },
-      ],
-    },
-    {
-      id: "pickers",
-      label: "Date and Time Pickers",
-      children: [
-        { id: "pickers-community", label: "@mui/x-date-pickers" },
-        { id: "pickers-pro", label: "@mui/x-date-pickers-pro" },
-      ],
-    },
-    {
-      id: "charts",
-      label: "Charts",
-      children: [{ id: "charts-community", label: "@mui/x-charts" }],
-    },
-    {
-      id: "tree-view",
-      label: "Tree View",
-      children: [{ id: "tree-view-community", label: "@mui/x-tree-view" }],
-    },
-  ];
-
-  const [MUI_X_PRODUCTS, setItems] = React.useState(initialProducts);
+  const [jsonitems, setItems] = React.useState(props.passedItems);
 
   function getItemDescendantsIds(item: TreeViewBaseItem) {
     const ids: string[] = [];
@@ -76,6 +54,7 @@ export default function MyTreeView() {
     editable: boolean;
     editing: boolean;
     toggleItemEditing: () => void;
+    addSubItem: () => void;
     expandItem: (event: React.MouseEvent) => void;
   }
 
@@ -85,6 +64,7 @@ export default function MyTreeView() {
     children,
     toggleItemEditing,
     expandItem,
+    addSubItem,
     ...other
   }: CustomLabelProps) {
     return (
@@ -115,29 +95,55 @@ export default function MyTreeView() {
             <EditOutlinedIcon fontSize="small" />
           </IconButton>
         }
+        {
+          <IconButton
+            size="small"
+            onClick={(event) => {
+              console.log("trying to add here");
+              event.stopPropagation();
+              addSubItem();
+            }}
+            sx={{ color: "text.secondary" }}
+          >
+            <Add />
+          </IconButton>
+        }
       </TreeItem2Label>
     );
   }
 
   interface CustomLabelInputProps extends UseTreeItem2LabelInputSlotOwnProps {
-    handleCancelItemLabelEditing: (event: React.SyntheticEvent) => void;
-    handleSaveItemLabel: (event: React.SyntheticEvent, label: string) => void;
     value: string;
   }
 
   function CustomLabelInput(props: Omit<CustomLabelInputProps, "ref">) {
-    const {
-      handleCancelItemLabelEditing,
-      handleSaveItemLabel,
-      value,
-      ...other
-    } = props;
+    const { value, ...other } = props;
 
     return (
       <React.Fragment>
         <TreeItem2LabelInput {...other} value={value} />
       </React.Fragment>
     );
+  }
+
+  function handleAddNewSubItem(parentId: string, newItem: TreeViewBaseItem) {
+    const addNewItem = (items: TreeViewBaseItem[]) => {
+      return items.map((item) => {
+        if (item.id === parentId) {
+          if (!item.children) {
+            item.children = [];
+          }
+          item.children.push(newItem);
+        }
+        if (item.children) {
+          item.children = addNewItem(item.children);
+        }
+        return item;
+      });
+    };
+    const updatedItems = addNewItem(jsonitems);
+    console.log(updatedItems);
+    setItems(updatedItems);
   }
 
   const CustomTreeItemContent = styled(TreeItem2Content)(({ theme }) => ({
@@ -175,6 +181,7 @@ export default function MyTreeView() {
       itemId: props.itemId,
       children: props.children,
     });
+
     return (
       <TreeItem2Provider itemId={itemId}>
         <TreeItem2Root {...getRootProps(other)}>
@@ -205,6 +212,13 @@ export default function MyTreeView() {
                     }}
                     expandItem={interactions.handleExpansion}
                     toggleItemEditing={interactions.toggleItemEditing}
+                    addSubItem={() => {
+                      console.log("adding request for", itemId);
+                      handleAddNewSubItem(itemId, {
+                        id: uuidv4(),
+                        label: "New Item",
+                      });
+                    }}
                   />
                 )}
               </Box>
@@ -224,6 +238,7 @@ export default function MyTreeView() {
     ids: string[]
   ) => {
     setSelectedItems(ids);
+    props.itemsChangedCallback(jsonitems, ids);
   };
   const handleItemLabelChange = (id: string, label: string) => {
     console.log("handleItemLabelChange", id, label);
@@ -238,30 +253,26 @@ export default function MyTreeView() {
         return item;
       });
     };
-    const newItems = updateItems(MUI_X_PRODUCTS);
+    const newItems = updateItems(jsonitems);
     setItems(newItems);
+    props.itemsChangedCallback(newItems, selectedItems);
   };
 
   return (
-    <Stack spacing={2}>
-      <Box sx={{ minHeight: 352, minWidth: 250 }}>
-        <RichTreeView
-          apiRef={apiRef}
-          slots={{ item: CustomTreeItem }}
-          items={MUI_X_PRODUCTS}
-          selectedItems={selectedItems}
-          onSelectedItemsChange={handleSelectedItemsChange}
-          multiSelect
-          checkboxSelection
-          isItemEditable
-          expansionTrigger="content"
-          experimentalFeatures={{ labelEditing: true }}
-          onItemLabelChange={(id, label) => {
-            handleItemLabelChange(id, label);
-          }}
-        />
-      </Box>
-      {JSON.stringify(MUI_X_PRODUCTS)}
-    </Stack>
+    <RichTreeView
+      apiRef={apiRef}
+      slots={{ item: CustomTreeItem }}
+      items={jsonitems}
+      selectedItems={selectedItems}
+      onSelectedItemsChange={handleSelectedItemsChange}
+      multiSelect
+      checkboxSelection
+      isItemEditable
+      expansionTrigger="content"
+      experimentalFeatures={{ labelEditing: true }}
+      onItemLabelChange={(id, label) => {
+        handleItemLabelChange(id, label);
+      }}
+    />
   );
 }

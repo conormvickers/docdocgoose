@@ -1,9 +1,9 @@
-import MyTreeView from "./Tree/Tree";
+import PBprovider from "./PBProvider/provider";
 
 function App() {
   return (
     <>
-      <MyTreeView />
+      <PBprovider />
     </>
   );
 }
