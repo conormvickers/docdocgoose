@@ -34,15 +34,15 @@ export default function MyAccordion(props: MyAccordionProps) {
 
   const [menuOptions, setMenuOptions] = useState<any[]>([]);
 
-  function getItemDescendantsIds(item: AccordionItem) {
-    const ids: string[] = [];
-    item.children?.forEach((child) => {
-      ids.push(child.id);
-      ids.push(...getItemDescendantsIds(child));
-    });
+  // function getItemDescendantsIds(item: AccordionItem) {
+  //   const ids: string[] = [];
+  //   item.children?.forEach((child) => {
+  //     ids.push(child.id);
+  //     ids.push(...getItemDescendantsIds(child));
+  //   });
 
-    return ids;
-  }
+  //   return ids;
+  // }
 
   function handleAddNewSubItem(lastClickedId: string) {
     const parentId = lastClickedId;
