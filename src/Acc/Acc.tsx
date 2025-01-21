@@ -12,9 +12,16 @@ import {
   Checkbox,
   Menu,
   MenuItem,
+  Button,
+  Fab,
 } from "@mui/material";
-import { AddCircleOutlined } from "@mui/icons-material";
-import { useState } from "react";
+import {
+  Add,
+  Done,
+  MoreVert,
+  Refresh,
+} from "@mui/icons-material";
+import {  useState } from "react";
 
 type AccordionItem = {
   id: string;
@@ -161,6 +168,7 @@ export default function MyAccordion(props: MyAccordionProps) {
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             autoFocus
+            onFocus={(e) => e.target.select()}
             onBlur={() => {
               setEditing(null);
               handleItemLabelChange(item.id, newTitle);
@@ -208,30 +216,33 @@ export default function MyAccordion(props: MyAccordionProps) {
           >
             {item?.label}
           </div>
-          <div>
-            <IconButton
-              onClick={(event) =>
-                handleOpenMenu(event, [
-                  {
-                    label: "Add New Sub Item",
-                    onClick: () => {
-                      handleAddNewSubItem(item.id);
-                      handleCloseMenu();
+          {!item.children && (
+            <div>
+              <IconButton
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleOpenMenu(event, [
+                    {
+                      label: "Add New Sub Item",
+                      onClick: () => {
+                        handleAddNewSubItem(item.id);
+                        handleCloseMenu();
+                      },
                     },
-                  },
-                  {
-                    label: "Delete Item",
-                    onClick: () => {
-                      handleDeleteItem(item.id);
-                      handleCloseMenu();
+                    {
+                      label: "Delete Item",
+                      onClick: () => {
+                        handleDeleteItem(item.id);
+                        handleCloseMenu();
+                      },
                     },
-                  },
-                ])
-              }
-            >
-              <AddCircleOutlined />
-            </IconButton>
-          </div>
+                  ]);
+                }}
+              >
+                <MoreVert />
+              </IconButton>
+            </div>
+          )}
         </div>
       );
     }
@@ -264,6 +275,11 @@ export default function MyAccordion(props: MyAccordionProps) {
             item.children.map((child: AccordionItem) =>
               recursiveItems(child, depth)
             )}
+          <div>
+            <Button onClick={() => handleAddNewSubItem(item.id)}>
+              <Add />
+            </Button>
+          </div>
         </AccordionDetails>
       </Accordion>
     );
@@ -282,6 +298,24 @@ export default function MyAccordion(props: MyAccordionProps) {
     setAnchorEl(null);
   };
 
+  function removeAllCompleteItems() {
+    const removeCheckedItems = (items: AccordionItem[]) => {
+      return items.filter((item) => {
+        if (item.checked) {
+          return false;
+        }
+        if (item.children) {
+          item.children = removeCheckedItems(item.children);
+        }
+        return true;
+      });
+    };
+    const newItems = removeCheckedItems(jsonitems);
+    console.log(newItems);
+    setItems(newItems);
+    props.itemsChangedCallback(newItems);
+  }
+
   return (
     <>
       <Menu
@@ -298,6 +332,22 @@ export default function MyAccordion(props: MyAccordionProps) {
         ))}
       </Menu>
       {jsonitems.map((item: AccordionItem) => recursiveItems(item, 0))}
+      <Fab
+        style={{ position: "fixed", bottom: "40px", right: "20px" }}
+        onClick={() => window.location.reload()}
+        color="primary"
+        aria-label="add"
+      >
+        <Refresh />
+      </Fab>
+      <Fab
+        style={{ position: "fixed", bottom: "40px", right: "100px" }}
+        onClick={() => removeAllCompleteItems()}
+        color="primary"
+        aria-label="add"
+      >
+        <Done />
+      </Fab>
     </>
   );
 }
