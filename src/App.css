@@ -1,4 +1,4 @@
 .AppWrap {
   padding-top: env(safe-area-inset-top);
-  height: calc(your_header_height + env(safe-area-inset-top));
+  height: calc("80px" + env(safe-area-inset-top));
 }

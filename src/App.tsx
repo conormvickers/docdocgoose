@@ -1,5 +1,6 @@
 import PBprovider from "./PBProvider/provider";
 import { Capacitor } from "@capacitor/core";
+import "./App.css";
 
 function App() {
   const isCapacitor = Capacitor.isNativePlatform();
