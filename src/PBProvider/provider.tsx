@@ -27,7 +27,7 @@ export default function PBProvider() {
   return jsondata === null ? (
     <div>loading...</div>
   ) : (
-    <div>
+    <div style={{ height: "100%" }}>
       <div style={{ padding: "20px", position: "relative" }}>
         {/* <MyTreeView
           passedItems={jsondata.items}

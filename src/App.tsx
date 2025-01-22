@@ -1,19 +1,17 @@
 import PBprovider from "./PBProvider/provider";
-import { Capacitor } from "@capacitor/core";
-import "./App.css";
+import "@ionic/react/css/core.css";
+import { setupIonicReact } from "@ionic/react";
+import { IonContent, IonHeader, IonTitle, IonToolbar } from "@ionic/react";
 
+setupIonicReact();
 function App() {
-  const isCapacitor = Capacitor.isNativePlatform();
-
   return (
-    <div className="AppWrap">
-      <div>
-        {isCapacitor ? (
-          <p>Running in Capacitor</p>
-        ) : (
-          <p>Running in Web Browser</p>
-        )}
-      </div>
+    <div>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Header</IonTitle>
+        </IonToolbar>
+      </IonHeader>
       <PBprovider />
     </div>
   );
