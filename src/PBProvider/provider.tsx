@@ -28,7 +28,6 @@ export default function PBProvider() {
     <div>loading...</div>
   ) : (
     <div>
-      <div style={{ padding: "20px", height: "100px" }}>hello </div>
       <div style={{ padding: "20px", position: "relative" }}>
         {/* <MyTreeView
           passedItems={jsondata.items}

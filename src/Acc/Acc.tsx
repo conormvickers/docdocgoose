@@ -15,13 +15,8 @@ import {
   Button,
   Fab,
 } from "@mui/material";
-import {
-  Add,
-  Done,
-  MoreVert,
-  Refresh,
-} from "@mui/icons-material";
-import {  useState } from "react";
+import { Add, Done, MoreVert, Refresh } from "@mui/icons-material";
+import { useState } from "react";
 
 type AccordionItem = {
   id: string;
@@ -58,23 +53,29 @@ export default function MyAccordion(props: MyAccordionProps) {
       label: "New Item",
       checked: false,
     };
-    const addNewItem = (items: AccordionItem[]) => {
-      return items.map((item) => {
-        if (item.id === parentId) {
-          if (!item.children) {
-            item.children = [];
+    if (lastClickedId === "") {
+      jsonitems.push(newItem);
+      setItems([...jsonitems]);
+    } else {
+      const addNewItem = (items: AccordionItem[]) => {
+        return items.map((item) => {
+          if (item.id === parentId) {
+            if (!item.children) {
+              item.children = [];
+            }
+            item.children.push(newItem);
           }
-          item.children.push(newItem);
-        }
-        if (item.children) {
-          item.children = addNewItem(item.children);
-        }
-        return item;
-      });
-    };
-    const updatedItems = addNewItem(jsonitems);
-    console.log(updatedItems);
-    setItems(updatedItems);
+          if (item.children) {
+            item.children = addNewItem(item.children);
+          }
+          return item;
+        });
+      };
+      const updatedItems = addNewItem(jsonitems);
+      console.log(updatedItems);
+      setItems(updatedItems);
+      setExpanded([...expanded, lastClickedId]);
+    }
   }
   function handleDeleteItem(lastClickedId: string) {
     console.log("handleDeleteItem", lastClickedId);
@@ -148,6 +149,7 @@ export default function MyAccordion(props: MyAccordionProps) {
     };
 
     if (!item.children || item.children.length === 0) {
+      console.log(item.children, item.label);
       return (
         <div key={item.id} style={{ display: "flex", alignItems: "center" }}>
           <div>
@@ -157,6 +159,31 @@ export default function MyAccordion(props: MyAccordionProps) {
             ></Checkbox>
           </div>
           {titlewidget()}
+          <div>
+            <IconButton
+              onClick={(event) => {
+                event.stopPropagation();
+                handleOpenMenu(event, [
+                  {
+                    label: "Add New Sub Item",
+                    onClick: () => {
+                      handleAddNewSubItem(item.id);
+                      handleCloseMenu();
+                    },
+                  },
+                  {
+                    label: "Delete Item",
+                    onClick: () => {
+                      handleDeleteItem(item.id);
+                      handleCloseMenu();
+                    },
+                  },
+                ]);
+              }}
+            >
+              <MoreVert />
+            </IconButton>
+          </div>
         </div>
       );
     }
@@ -216,33 +243,6 @@ export default function MyAccordion(props: MyAccordionProps) {
           >
             {item?.label}
           </div>
-          {!item.children && (
-            <div>
-              <IconButton
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleOpenMenu(event, [
-                    {
-                      label: "Add New Sub Item",
-                      onClick: () => {
-                        handleAddNewSubItem(item.id);
-                        handleCloseMenu();
-                      },
-                    },
-                    {
-                      label: "Delete Item",
-                      onClick: () => {
-                        handleDeleteItem(item.id);
-                        handleCloseMenu();
-                      },
-                    },
-                  ]);
-                }}
-              >
-                <MoreVert />
-              </IconButton>
-            </div>
-          )}
         </div>
       );
     }
@@ -332,6 +332,13 @@ export default function MyAccordion(props: MyAccordionProps) {
         ))}
       </Menu>
       {jsonitems.map((item: AccordionItem) => recursiveItems(item, 0))}
+      <Button
+        style={{ margin: "20px" }}
+        variant="outlined"
+        onClick={() => handleAddNewSubItem("")}
+      >
+        New Project <Add />
+      </Button>
       <Fab
         style={{ position: "fixed", bottom: "40px", right: "20px" }}
         onClick={() => window.location.reload()}
