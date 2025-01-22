@@ -1,4 +1,4 @@
 .AppWrap {
   padding-top: env(safe-area-inset-top);
-  height: calc("80px" + env(safe-area-inset-top));
+  padding-bottom: env(safe-area-inset-bottom);
 }
