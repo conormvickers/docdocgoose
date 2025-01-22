@@ -1,7 +1,7 @@
 import PBprovider from "./PBProvider/provider";
 import "@ionic/react/css/core.css";
 import { setupIonicReact } from "@ionic/react";
-import { IonContent, IonHeader, IonTitle, IonToolbar } from "@ionic/react";
+import { IonHeader, IonTitle, IonToolbar } from "@ionic/react";
 
 setupIonicReact();
 function App() {
