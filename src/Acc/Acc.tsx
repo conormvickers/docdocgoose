@@ -29,22 +29,42 @@ interface MyAccordionProps {
   passedItems: object[];
   itemsChangedCallback: (items: object) => void;
 }
+
+function countCheckedAndTotalChildren(items: AccordionItem[] | undefined): {
+  checkedCount: number;
+  totalChildren: number;
+} {
+  let checkedCount = 0;
+  let totalChildren = 0;
+
+  if (!items) {
+    return { checkedCount, totalChildren };
+  }
+  if (items.length === 0) {
+    return { checkedCount, totalChildren };
+  }
+
+  const recursiveCount = (items: AccordionItem[]) => {
+    items.forEach((item) => {
+      totalChildren++;
+      if (item.checked) {
+        checkedCount++;
+      }
+      if (item.children) {
+        recursiveCount(item.children);
+      }
+    });
+  };
+
+  recursiveCount(items);
+  return { checkedCount, totalChildren };
+}
 export default function MyAccordion(props: MyAccordionProps) {
   const [jsonitems, setItems] = React.useState(
     props.passedItems as AccordionItem[]
   );
 
   const [menuOptions, setMenuOptions] = useState<any[]>([]);
-
-  // function getItemDescendantsIds(item: AccordionItem) {
-  //   const ids: string[] = [];
-  //   item.children?.forEach((child) => {
-  //     ids.push(child.id);
-  //     ids.push(...getItemDescendantsIds(child));
-  //   });
-
-  //   return ids;
-  // }
 
   function handleAddNewSubItem(lastClickedId: string) {
     const parentId = lastClickedId;
@@ -241,7 +261,9 @@ export default function MyAccordion(props: MyAccordionProps) {
               }
             }}
           >
-            {item?.label}
+            {depth === 1 ? <h2>{item.label}</h2> : <div>{item.label}</div>}
+            {countCheckedAndTotalChildren(item.children).checkedCount}/
+            {countCheckedAndTotalChildren(item.children).totalChildren}
           </div>
         </div>
       );
@@ -250,7 +272,10 @@ export default function MyAccordion(props: MyAccordionProps) {
     return (
       <Accordion
         key={item.id}
-        style={{ paddingLeft: "30px" }}
+        style={{
+          paddingLeft: "30px",
+          borderLeft: `5px solid #ADD8E6`,
+        }}
         expanded={expanded.includes(item.id)}
       >
         <AccordionSummary
