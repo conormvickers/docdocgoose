@@ -14,6 +14,34 @@ export default function PBProvider() {
     console.log(record);
     setData(record);
   }
+  // Subscribe to changes only in the specified record
+  pb.collection("tasks").subscribe(
+    recordid,
+    function (e) {
+      console.log(e.action);
+      console.log(e.record);
+      if (e.action === "update") {
+        setData(e.record);
+      }
+    },
+    {}
+  );
+
+  const handleFocus = () => {
+    getData();
+  };
+  const handleBlur = () => {};
+
+  useEffect(() => {
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
 
   async function updateData(data: any) {
     console.log("updateData", data);
@@ -24,28 +52,22 @@ export default function PBProvider() {
     getData();
   }, []);
 
-  return jsondata === null ? (
-    <div>loading...</div>
-  ) : (
-    <div style={{ height: "100%" }}>
-      <div style={{ padding: "20px", position: "relative" }}>
-        {/* <MyTreeView
-          passedItems={jsondata.items}
-          passedSelectedItems={jsondata.selected}
-          itemsChangedCallback={(items, selected) => {
-            console.log("got back", items, selected);
-            updateData({ items: items, selected: selected });
-          }}
-        /> */}
-
-        <MyAccordion
-          passedItems={jsondata.items}
-          itemsChangedCallback={(items) => {
-            updateData({ items: items });
-          }}
-        />
-      </div>
+  return (
+    <div>
+      {jsondata === null ? (
+        <div>loading...</div>
+      ) : (
+        <div style={{ height: "100%" }}>
+          <div style={{ padding: "20px", position: "relative" }}>
+            <MyAccordion
+              passedItems={jsondata}
+              itemsChangedCallback={(items) => {
+                updateData({ items: items });
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-<div></div>;

@@ -14,6 +14,7 @@ import {
   MenuItem,
   Button,
   Fab,
+  LinearProgress,
 } from "@mui/material";
 import { Add, Done, MoreVert, Refresh } from "@mui/icons-material";
 import { useState } from "react";
@@ -22,11 +23,13 @@ type AccordionItem = {
   id: string;
   label: string;
   checked?: boolean;
+  description?: string;
+  critical?: boolean;
   children?: AccordionItem[];
 };
 
 interface MyAccordionProps {
-  passedItems: object[];
+  passedItems: { items: AccordionItem[] };
   itemsChangedCallback: (items: object) => void;
 }
 
@@ -46,12 +49,13 @@ function countCheckedAndTotalChildren(items: AccordionItem[] | undefined): {
 
   const recursiveCount = (items: AccordionItem[]) => {
     items.forEach((item) => {
-      totalChildren++;
-      if (item.checked) {
-        checkedCount++;
-      }
       if (item.children) {
         recursiveCount(item.children);
+      } else {
+        totalChildren++;
+        if (item.checked) {
+          checkedCount++;
+        }
       }
     });
   };
@@ -61,8 +65,11 @@ function countCheckedAndTotalChildren(items: AccordionItem[] | undefined): {
 }
 export default function MyAccordion(props: MyAccordionProps) {
   const [jsonitems, setItems] = React.useState(
-    props.passedItems as AccordionItem[]
+    props.passedItems.items as AccordionItem[]
   );
+  React.useEffect(() => {
+    setItems(props.passedItems.items);
+  }, [props.passedItems.items]);
 
   const [menuOptions, setMenuOptions] = useState<any[]>([]);
 
@@ -92,13 +99,11 @@ export default function MyAccordion(props: MyAccordionProps) {
         });
       };
       const updatedItems = addNewItem(jsonitems);
-      console.log(updatedItems);
       setItems(updatedItems);
       setExpanded([...expanded, lastClickedId]);
     }
   }
   function handleDeleteItem(lastClickedId: string) {
-    console.log("handleDeleteItem", lastClickedId);
     if (lastClickedId) {
       const deleteItem = (items: AccordionItem[]) => {
         return items.filter((item) => {
@@ -112,14 +117,12 @@ export default function MyAccordion(props: MyAccordionProps) {
         });
       };
       const updatedItems = deleteItem(jsonitems);
-      console.log(updatedItems);
       setItems(updatedItems);
       props.itemsChangedCallback(updatedItems);
     }
   }
 
   const handleItemLabelChange = (id: string, label: string) => {
-    console.log("handleItemLabelChange", id, label);
     const updateItems = (items: AccordionItem[]): AccordionItem[] => {
       return items.map((item) => {
         if (item.id === id) {
@@ -136,11 +139,44 @@ export default function MyAccordion(props: MyAccordionProps) {
     props.itemsChangedCallback(newItems);
   };
   const handleCheckChange = (id: string, checked: boolean) => {
-    console.log("check changed for", id, checked);
     const updateItems = (items: AccordionItem[]): AccordionItem[] => {
       return items.map((item) => {
         if (item.id === id) {
           return { ...item, checked: checked };
+        }
+        if (item.children) {
+          return { ...item, children: updateItems(item.children) };
+        }
+        return item;
+      });
+    };
+    const newItems = updateItems(jsonitems);
+    setItems(newItems);
+    props.itemsChangedCallback(newItems);
+  };
+
+  const handleAddDescription = (id: string) => {
+    const updateItems = (items: AccordionItem[]): AccordionItem[] => {
+      return items.map((item) => {
+        if (item.id === id) {
+          return { ...item, description: "" };
+        }
+        if (item.children) {
+          return { ...item, children: updateItems(item.children) };
+        }
+        return item;
+      });
+    };
+    const newItems = updateItems(jsonitems);
+    setItems(newItems);
+    props.itemsChangedCallback(newItems);
+  };
+
+  const handleMakeCritical = (id: string) => {
+    const updateItems = (items: AccordionItem[]): AccordionItem[] => {
+      return items.map((item) => {
+        if (item.id === id) {
+          return { ...item, critical: !item.critical };
         }
         if (item.children) {
           return { ...item, children: updateItems(item.children) };
@@ -169,7 +205,6 @@ export default function MyAccordion(props: MyAccordionProps) {
     };
 
     if (!item.children || item.children.length === 0) {
-      console.log(item.children, item.label);
       return (
         <div key={item.id} style={{ display: "flex", alignItems: "center" }}>
           <div>
@@ -195,6 +230,20 @@ export default function MyAccordion(props: MyAccordionProps) {
                     label: "Delete Item",
                     onClick: () => {
                       handleDeleteItem(item.id);
+                      handleCloseMenu();
+                    },
+                  },
+                  {
+                    label: "Add Description",
+                    onClick: () => {
+                      handleAddDescription(item.id);
+                      handleCloseMenu();
+                    },
+                  },
+                  {
+                    label: "Make Critica",
+                    onClick: () => {
+                      handleMakeCritical(item.id);
                       handleCloseMenu();
                     },
                   },
@@ -242,7 +291,6 @@ export default function MyAccordion(props: MyAccordionProps) {
               setEditing(item.id);
             }}
             onClick={(event) => {
-              console.log("clicked title ", editing, doubleClickTimeout);
               event.stopPropagation();
               if (!editing) {
                 if (doubleClickTimeout) {
@@ -262,8 +310,6 @@ export default function MyAccordion(props: MyAccordionProps) {
             }}
           >
             {depth === 1 ? <h2>{item.label}</h2> : <div>{item.label}</div>}
-            {countCheckedAndTotalChildren(item.children).checkedCount}/
-            {countCheckedAndTotalChildren(item.children).totalChildren}
           </div>
         </div>
       );
@@ -288,12 +334,20 @@ export default function MyAccordion(props: MyAccordionProps) {
                   : [...expanded, item.id]
               );
             } else {
-              console.log("key detected");
               event.stopPropagation();
             }
           }}
         >
-          {titlewidget()}
+          <div>{titlewidget()}</div>
+          <LinearProgress
+            style={{ width: "100px" }}
+            variant="determinate"
+            value={
+              (countCheckedAndTotalChildren(item.children).checkedCount /
+                countCheckedAndTotalChildren(item.children).totalChildren) *
+              100
+            }
+          />
         </AccordionSummary>
         <AccordionDetails>
           {item?.children &&
@@ -336,7 +390,6 @@ export default function MyAccordion(props: MyAccordionProps) {
       });
     };
     const newItems = removeCheckedItems(jsonitems);
-    console.log(newItems);
     setItems(newItems);
     props.itemsChangedCallback(newItems);
   }
