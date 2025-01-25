@@ -61,8 +61,23 @@ export default function PBProvider() {
           <div style={{ padding: "20px", position: "relative" }}>
             <MyAccordion
               passedItems={jsondata}
-              itemsChangedCallback={(items) => {
-                updateData({ items: items });
+              itemsChangedCallback={(items, deleted) => {
+                const recordUpdateObject: { items: object; deleted?: object } =
+                  {
+                    items: items,
+                  };
+                if (deleted) {
+                  console.log("deleted", deleted);
+                  if (jsondata.deleted) {
+                    recordUpdateObject.deleted = [
+                      ...jsondata.deleted,
+                      ...deleted,
+                    ];
+                  } else {
+                    recordUpdateObject.deleted = deleted;
+                  }
+                }
+                updateData(recordUpdateObject);
               }}
             />
           </div>

@@ -16,7 +16,15 @@ import {
   Fab,
   LinearProgress,
 } from "@mui/material";
-import { Add, Done, MoreVert, Refresh } from "@mui/icons-material";
+
+import {
+  Add,
+  DeleteForever,
+  Done,
+  MoreVert,
+  PriorityHigh,
+  Refresh,
+} from "@mui/icons-material";
 import { useState } from "react";
 
 type AccordionItem = {
@@ -29,23 +37,36 @@ type AccordionItem = {
 };
 
 interface MyAccordionProps {
-  passedItems: { items: AccordionItem[] };
-  itemsChangedCallback: (items: object) => void;
+  passedItems: {
+    items: AccordionItem[];
+    deleted?: { item: AccordionItem; parentId: string }[];
+  };
+  itemsChangedCallback: (
+    items: AccordionItem[],
+    deleted?: { item: AccordionItem; parentId: string }[]
+  ) => void;
 }
 
 function countCheckedAndTotalChildren(items: AccordionItem[] | undefined): {
   checkedCount: number;
   totalChildren: number;
+  uncheckedChildrenLabels: string[] | undefined;
+  containsCritical: boolean;
 } {
   let checkedCount = 0;
   let totalChildren = 0;
 
-  if (!items) {
-    return { checkedCount, totalChildren };
+  if (!items || items.length === 0) {
+    return {
+      checkedCount,
+      totalChildren,
+      uncheckedChildrenLabels: undefined,
+      containsCritical: false,
+    };
   }
-  if (items.length === 0) {
-    return { checkedCount, totalChildren };
-  }
+
+  let containsCritical = false;
+  const uncheckedChildrenLabels: string[] = [];
 
   const recursiveCount = (items: AccordionItem[]) => {
     items.forEach((item) => {
@@ -55,32 +76,51 @@ function countCheckedAndTotalChildren(items: AccordionItem[] | undefined): {
         totalChildren++;
         if (item.checked) {
           checkedCount++;
+        } else {
+          uncheckedChildrenLabels.push(item.label);
+        }
+        if (item.critical) {
+          containsCritical = true;
         }
       }
     });
   };
 
   recursiveCount(items);
-  return { checkedCount, totalChildren };
+  return {
+    checkedCount,
+    totalChildren,
+    uncheckedChildrenLabels,
+    containsCritical,
+  };
 }
 export default function MyAccordion(props: MyAccordionProps) {
   const [jsonitems, setItems] = React.useState(
     props.passedItems.items as AccordionItem[]
   );
+  const [deleted, setDeleted] = useState(props.passedItems.deleted);
   React.useEffect(() => {
     setItems(props.passedItems.items);
   }, [props.passedItems.items]);
-
+  React.useEffect(() => {
+    setDeleted(props.passedItems.deleted);
+  }, [props.passedItems.deleted]);
   const [menuOptions, setMenuOptions] = useState<any[]>([]);
 
-  function handleAddNewSubItem(lastClickedId: string) {
-    const parentId = lastClickedId;
-    const newItem: AccordionItem = {
-      id: uuidv4(),
-      label: "New Item",
-      checked: false,
-    };
-    if (lastClickedId === "") {
+  function handleAddNewSubItem(
+    parentId: string,
+
+    restoreItem?: AccordionItem,
+    updatedDeletedList?: { item: AccordionItem; parentId: string }[]
+  ) {
+    const newItem: AccordionItem = restoreItem
+      ? restoreItem
+      : {
+          id: uuidv4(),
+          label: "New Item",
+          checked: false,
+        };
+    if (parentId === "") {
       jsonitems.push(newItem);
       setItems([...jsonitems]);
     } else {
@@ -100,25 +140,31 @@ export default function MyAccordion(props: MyAccordionProps) {
       };
       const updatedItems = addNewItem(jsonitems);
       setItems(updatedItems);
-      setExpanded([...expanded, lastClickedId]);
+      setExpanded([...expanded, parentId]);
+      props.itemsChangedCallback(updatedItems, updatedDeletedList);
     }
   }
   function handleDeleteItem(lastClickedId: string) {
     if (lastClickedId) {
-      const deleteItem = (items: AccordionItem[]) => {
+      var deletedItemObject = null;
+      const deleteItem = (items: AccordionItem[], parentId: string) => {
         return items.filter((item) => {
           if (item.id === lastClickedId) {
+            deletedItemObject = { parentId: parentId, item: item };
             return false;
           }
           if (item.children) {
-            item.children = deleteItem(item.children);
+            item.children = deleteItem(item.children, item.id);
           }
           return true;
         });
       };
-      const updatedItems = deleteItem(jsonitems);
+      const updatedItems = deleteItem(jsonitems, "");
       setItems(updatedItems);
-      props.itemsChangedCallback(updatedItems);
+      props.itemsChangedCallback(
+        updatedItems,
+        deletedItemObject ? [deletedItemObject] : undefined
+      );
     }
   }
 
@@ -213,6 +259,9 @@ export default function MyAccordion(props: MyAccordionProps) {
               onChange={handleCheckboxChange}
             ></Checkbox>
           </div>
+          {item.critical && !item.checked && (
+            <PriorityHigh style={{ color: "red" }} />
+          )}
           {titlewidget()}
           <div>
             <IconButton
@@ -241,7 +290,7 @@ export default function MyAccordion(props: MyAccordionProps) {
                     },
                   },
                   {
-                    label: "Make Critica",
+                    label: "Make Critical",
                     onClick: () => {
                       handleMakeCritical(item.id);
                       handleCloseMenu();
@@ -314,6 +363,12 @@ export default function MyAccordion(props: MyAccordionProps) {
         </div>
       );
     }
+    const {
+      checkedCount,
+      totalChildren,
+      uncheckedChildrenLabels,
+      containsCritical,
+    } = countCheckedAndTotalChildren(item.children);
 
     return (
       <Accordion
@@ -342,12 +397,17 @@ export default function MyAccordion(props: MyAccordionProps) {
           <LinearProgress
             style={{ width: "100px" }}
             variant="determinate"
-            value={
-              (countCheckedAndTotalChildren(item.children).checkedCount /
-                countCheckedAndTotalChildren(item.children).totalChildren) *
-              100
-            }
+            value={(checkedCount / totalChildren) * 100}
           />
+          {!expanded.includes(item.id) && (
+            <div>
+              {containsCritical && <PriorityHigh style={{ color: "red" }} />}
+              {uncheckedChildrenLabels &&
+                uncheckedChildrenLabels.length > 0 && (
+                  <div>{uncheckedChildrenLabels[0]}</div>
+                )}
+            </div>
+          )}
         </AccordionSummary>
         <AccordionDetails>
           {item?.children &&
@@ -378,9 +438,11 @@ export default function MyAccordion(props: MyAccordionProps) {
   };
 
   function removeAllCompleteItems() {
+    let removedItems: { item: AccordionItem; parentId: string }[] = [];
     const removeCheckedItems = (items: AccordionItem[]) => {
       return items.filter((item) => {
         if (item.checked) {
+          removedItems.push({ item: item, parentId: "" });
           return false;
         }
         if (item.children) {
@@ -391,13 +453,23 @@ export default function MyAccordion(props: MyAccordionProps) {
     };
     const newItems = removeCheckedItems(jsonitems);
     setItems(newItems);
-    props.itemsChangedCallback(newItems);
+
+    props.itemsChangedCallback(newItems, removedItems);
   }
+
+  const [anchorElDeleted, setAnchorElDeleted] =
+    React.useState<null | HTMLElement>(null);
+  const handleClickDeleted = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorElDeleted(event.currentTarget);
+  };
+  const handleCloseDeleted = () => {
+    setAnchorElDeleted(null);
+  };
 
   return (
     <>
       <Menu
-        id="simple-menu"
+        id="simples-menu"
         anchorEl={anchorEl}
         keepMounted
         open={Boolean(anchorEl)}
@@ -409,6 +481,36 @@ export default function MyAccordion(props: MyAccordionProps) {
           </MenuItem>
         ))}
       </Menu>
+      <Menu
+        id="deleted-menu"
+        anchorEl={anchorElDeleted}
+        keepMounted
+        open={Boolean(anchorElDeleted)}
+        onClose={handleCloseDeleted}
+      >
+        {deleted &&
+          deleted.map((deletedItem, index) => (
+            <MenuItem
+              key={index}
+              onClick={() => {
+                let updatedDeletedList = props.passedItems.deleted;
+                if (props.passedItems.deleted) {
+                  updatedDeletedList = props.passedItems.deleted =
+                    props.passedItems.deleted.filter(
+                      (item) => item.item.id !== deletedItem.item.id
+                    );
+                }
+                handleAddNewSubItem(
+                  deletedItem.parentId,
+                  deletedItem.item,
+                  updatedDeletedList
+                );
+              }}
+            >
+              {deletedItem.item.label}
+            </MenuItem>
+          ))}
+      </Menu>
       {jsonitems.map((item: AccordionItem) => recursiveItems(item, 0))}
       <Button
         style={{ margin: "20px" }}
@@ -417,6 +519,14 @@ export default function MyAccordion(props: MyAccordionProps) {
       >
         New Project <Add />
       </Button>
+      <Fab
+        style={{ position: "fixed", bottom: "40px", right: "180px" }}
+        onClick={(event) => handleClickDeleted(event)}
+        color="primary"
+        aria-label="add"
+      >
+        <DeleteForever />
+      </Fab>
       <Fab
         style={{ position: "fixed", bottom: "40px", right: "20px" }}
         onClick={() => window.location.reload()}
