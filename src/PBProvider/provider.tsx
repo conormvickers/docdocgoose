@@ -72,7 +72,7 @@ export default function PBProvider() {
                     recordUpdateObject.deleted = [
                       ...jsondata.deleted,
                       ...deleted,
-                    ];
+                    ].slice(-20);
                   } else {
                     recordUpdateObject.deleted = deleted;
                   }
