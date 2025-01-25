@@ -18,10 +18,14 @@ import {
   SpeedDial,
   SpeedDialIcon,
   SpeedDialAction,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
 
 import {
   Add,
+  ChatBubble,
   CloseFullscreen,
   DeleteForever,
   Done,
@@ -204,11 +208,28 @@ export default function MyAccordion(props: MyAccordionProps) {
     props.itemsChangedCallback(newItems);
   };
 
+  const handleUpdateDescription = (id: string, newDescription: string) => {
+    const updateItems = (items: AccordionItem[]): AccordionItem[] => {
+      return items.map((item) => {
+        if (item.id === id) {
+          return { ...item, description: newDescription };
+        }
+        if (item.children) {
+          return { ...item, children: updateItems(item.children) };
+        }
+        return item;
+      });
+    };
+    const newItems = updateItems(jsonitems);
+    setItems(newItems);
+    props.itemsChangedCallback(newItems);
+  };
+
   const handleAddDescription = (id: string) => {
     const updateItems = (items: AccordionItem[]): AccordionItem[] => {
       return items.map((item) => {
         if (item.id === id) {
-          return { ...item, description: "" };
+          return { ...item, description: " " };
         }
         if (item.children) {
           return { ...item, children: updateItems(item.children) };
@@ -305,6 +326,26 @@ export default function MyAccordion(props: MyAccordionProps) {
               <MoreVert />
             </IconButton>
           </div>
+          {item.description && (
+            <div>
+              <IconButton
+                onClick={() => {
+                  setDescription(item.description!);
+                  setDescriptionId(item.id);
+                  let linksfound: string[] = [];
+                  item.description?.split("\n").forEach((line) => {
+                    if (line.trim().toLowerCase().startsWith("http")) {
+                      linksfound.push(line.trim());
+                    }
+                  });
+                  setLinks(linksfound);
+                  setShowDialog(true);
+                }}
+              >
+                <ChatBubble />
+              </IconButton>
+            </div>
+          )}
         </div>
       );
     }
@@ -474,15 +515,52 @@ export default function MyAccordion(props: MyAccordionProps) {
   const handleCloseDeleted = () => {
     setAnchorElDeleted(null);
   };
+  const [showDialog, setShowDialog] = React.useState(false);
+  const [description, setDescription] = React.useState("");
+  const [descriptionId, setDescriptionId] = React.useState("");
+  const [links, setLinks] = React.useState<string[]>([]);
 
   return (
     <>
+      <Dialog
+        open={showDialog}
+        onClose={() => {
+          setShowDialog(false);
+          handleUpdateDescription(descriptionId, description);
+        }}
+      >
+        <DialogTitle>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            value={description}
+            onChange={(e) => {
+              let linksfound: string[] = [];
+              e.target.value.split("\n").forEach((line) => {
+                if (line.trim().toLowerCase().startsWith("http")) {
+                  linksfound.push(line.trim());
+                }
+              });
+              setLinks(linksfound);
+              setDescription(e.target.value);
+            }}
+          ></TextField>
+        </DialogTitle>
+        <DialogContent>
+          {links &&
+            links.map((link, index) => (
+              <IconButton onClick={() => window.open(link, "_blank")}>
+                {index}
+              </IconButton>
+            ))}
+        </DialogContent>
+      </Dialog>
       <SpeedDial
         ariaLabel="SpeedDial basic example"
-        sx={{ position: "absolute", bottom: 16, right: 16 }}
+        sx={{ position: "fixed", bottom: 16, right: 16 }}
         icon={<SpeedDialIcon />}
       >
-        {" "}
         <SpeedDialAction
           key="Collapse"
           icon={<CloseFullscreen />}
