@@ -13,17 +13,20 @@ import {
   Menu,
   MenuItem,
   Button,
-  Fab,
   LinearProgress,
+  Stack,
+  SpeedDial,
+  SpeedDialIcon,
+  SpeedDialAction,
 } from "@mui/material";
 
 import {
   Add,
+  CloseFullscreen,
   DeleteForever,
   Done,
   MoreVert,
   PriorityHigh,
-  Refresh,
 } from "@mui/icons-material";
 import { useState } from "react";
 
@@ -79,7 +82,7 @@ function countCheckedAndTotalChildren(items: AccordionItem[] | undefined): {
         } else {
           uncheckedChildrenLabels.push(item.label);
         }
-        if (item.critical) {
+        if (item.critical && !item.checked) {
           containsCritical = true;
         }
       }
@@ -290,7 +293,7 @@ export default function MyAccordion(props: MyAccordionProps) {
                     },
                   },
                   {
-                    label: "Make Critical",
+                    label: "Toggle Critical",
                     onClick: () => {
                       handleMakeCritical(item.id);
                       handleCloseMenu();
@@ -393,21 +396,27 @@ export default function MyAccordion(props: MyAccordionProps) {
             }
           }}
         >
-          <div>{titlewidget()}</div>
-          <LinearProgress
-            style={{ width: "100px" }}
-            variant="determinate"
-            value={(checkedCount / totalChildren) * 100}
-          />
-          {!expanded.includes(item.id) && (
-            <div>
-              {containsCritical && <PriorityHigh style={{ color: "red" }} />}
-              {uncheckedChildrenLabels &&
-                uncheckedChildrenLabels.length > 0 && (
-                  <div>{uncheckedChildrenLabels[0]}</div>
-                )}
-            </div>
-          )}
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <div>{titlewidget()}</div>
+            <Stack style={{ paddingLeft: "10px" }}>
+              <LinearProgress
+                style={{ width: "100px" }}
+                variant="determinate"
+                value={(checkedCount / totalChildren) * 100}
+              />
+              {!expanded.includes(item.id) && (
+                <div>
+                  {containsCritical && (
+                    <PriorityHigh style={{ color: "red" }} />
+                  )}
+                  {uncheckedChildrenLabels &&
+                    uncheckedChildrenLabels.length > 0 && (
+                      <div>{uncheckedChildrenLabels[0]}</div>
+                    )}
+                </div>
+              )}
+            </Stack>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           {item?.children &&
@@ -459,7 +468,7 @@ export default function MyAccordion(props: MyAccordionProps) {
 
   const [anchorElDeleted, setAnchorElDeleted] =
     React.useState<null | HTMLElement>(null);
-  const handleClickDeleted = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClickDeleted = (event: React.MouseEvent<HTMLDivElement>) => {
     setAnchorElDeleted(event.currentTarget);
   };
   const handleCloseDeleted = () => {
@@ -468,6 +477,37 @@ export default function MyAccordion(props: MyAccordionProps) {
 
   return (
     <>
+      <SpeedDial
+        ariaLabel="SpeedDial basic example"
+        sx={{ position: "absolute", bottom: 16, right: 16 }}
+        icon={<SpeedDialIcon />}
+      >
+        {" "}
+        <SpeedDialAction
+          key="Collapse"
+          icon={<CloseFullscreen />}
+          tooltipTitle="Collapse"
+          onClick={() => setExpanded([])}
+        />
+        <SpeedDialAction
+          key="Add"
+          icon={<Add />}
+          tooltipTitle="Add"
+          onClick={() => handleAddNewSubItem("")}
+        />
+        <SpeedDialAction
+          key="Delete"
+          icon={<DeleteForever />}
+          tooltipTitle="Delete"
+          onClick={(event) => handleClickDeleted(event)}
+        />
+        <SpeedDialAction
+          key="Done"
+          icon={<Done />}
+          tooltipTitle="Done"
+          onClick={() => removeAllCompleteItems()}
+        />
+      </SpeedDial>
       <Menu
         id="simples-menu"
         anchorEl={anchorEl}
@@ -511,7 +551,9 @@ export default function MyAccordion(props: MyAccordionProps) {
             </MenuItem>
           ))}
       </Menu>
-      {jsonitems.map((item: AccordionItem) => recursiveItems(item, 0))}
+      <div style={{ padding: "20px" }}>
+        {jsonitems.map((item: AccordionItem) => recursiveItems(item, 0))}
+      </div>
       <Button
         style={{ margin: "20px" }}
         variant="outlined"
@@ -519,30 +561,6 @@ export default function MyAccordion(props: MyAccordionProps) {
       >
         New Project <Add />
       </Button>
-      <Fab
-        style={{ position: "fixed", bottom: "40px", right: "180px" }}
-        onClick={(event) => handleClickDeleted(event)}
-        color="primary"
-        aria-label="add"
-      >
-        <DeleteForever />
-      </Fab>
-      <Fab
-        style={{ position: "fixed", bottom: "40px", right: "20px" }}
-        onClick={() => window.location.reload()}
-        color="primary"
-        aria-label="add"
-      >
-        <Refresh />
-      </Fab>
-      <Fab
-        style={{ position: "fixed", bottom: "40px", right: "100px" }}
-        onClick={() => removeAllCompleteItems()}
-        color="primary"
-        aria-label="add"
-      >
-        <Done />
-      </Fab>
     </>
   );
 }

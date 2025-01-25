@@ -53,36 +53,31 @@ export default function PBProvider() {
   }, []);
 
   return (
-    <div>
+    <>
       {jsondata === null ? (
         <div>loading...</div>
       ) : (
-        <div style={{ height: "100%" }}>
-          <div style={{ padding: "20px", position: "relative" }}>
-            <MyAccordion
-              passedItems={jsondata}
-              itemsChangedCallback={(items, deleted) => {
-                const recordUpdateObject: { items: object; deleted?: object } =
-                  {
-                    items: items,
-                  };
-                if (deleted) {
-                  console.log("deleted", deleted);
-                  if (jsondata.deleted) {
-                    recordUpdateObject.deleted = [
-                      ...jsondata.deleted,
-                      ...deleted,
-                    ].slice(-20);
-                  } else {
-                    recordUpdateObject.deleted = deleted;
-                  }
-                }
-                updateData(recordUpdateObject);
-              }}
-            />
-          </div>
-        </div>
+        <MyAccordion
+          passedItems={jsondata}
+          itemsChangedCallback={(items, deleted) => {
+            const recordUpdateObject: { items: object; deleted?: object } = {
+              items: items,
+            };
+            if (deleted) {
+              console.log("deleted", deleted);
+              if (jsondata.deleted) {
+                recordUpdateObject.deleted = [
+                  ...jsondata.deleted,
+                  ...deleted,
+                ].slice(-20);
+              } else {
+                recordUpdateObject.deleted = deleted;
+              }
+            }
+            updateData(recordUpdateObject);
+          }}
+        />
       )}
-    </div>
+    </>
   );
 }
