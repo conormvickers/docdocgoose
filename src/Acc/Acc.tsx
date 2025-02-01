@@ -30,6 +30,7 @@ import {
   DeleteForever,
   Done,
   MoreVert,
+  AccountTree,
   PriorityHigh,
 } from "@mui/icons-material";
 import { useState } from "react";
@@ -42,6 +43,7 @@ type AccordionItem = {
   critical?: boolean;
   children?: AccordionItem[];
 };
+import Flow from "../Flow/Flow";
 
 interface MyAccordionProps {
   passedItems: {
@@ -458,6 +460,16 @@ export default function MyAccordion(props: MyAccordionProps) {
               )}
             </Stack>
           </div>
+          <div>
+            <IconButton
+              onClick={() => {
+                setFlowItem(item as object);
+                setShowFlow(true);
+              }}
+            >
+              <AccountTree />
+            </IconButton>
+          </div>
         </AccordionSummary>
         <AccordionDetails>
           {item?.children &&
@@ -520,8 +532,23 @@ export default function MyAccordion(props: MyAccordionProps) {
   const [descriptionId, setDescriptionId] = React.useState("");
   const [links, setLinks] = React.useState<string[]>([]);
 
+  const [showFlow, setShowFlow] = React.useState(false);
+  const [flowitem, setFlowItem] = React.useState<object>();
   return (
     <>
+      <Dialog
+        open={showFlow}
+        onClose={() => setShowFlow(false)}
+        maxWidth="lg"
+        fullWidth
+        sx={{
+          padding: 2, // add some padding
+        }}
+      >
+        <div style={{ width: "100%", height: "90vh" }}>
+          <Flow data={flowitem!} />
+        </div>
+      </Dialog>
       <Dialog
         open={showDialog}
         onClose={() => {
