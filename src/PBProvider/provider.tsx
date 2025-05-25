@@ -28,18 +28,16 @@ export default function PBProvider() {
   );
 
   const handleFocus = () => {
+    console.log("getting data from focus");
     getData();
   };
-  const handleBlur = () => {};
 
   useEffect(() => {
     window.addEventListener("focus", handleFocus);
-    window.addEventListener("blur", handleBlur);
 
     // Cleanup on unmount
     return () => {
       window.removeEventListener("focus", handleFocus);
-      window.removeEventListener("blur", handleBlur);
     };
   }, []);
 

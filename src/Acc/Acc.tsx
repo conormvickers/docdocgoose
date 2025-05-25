@@ -21,6 +21,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
+  Link,
 } from "@mui/material";
 
 import {
@@ -32,6 +34,14 @@ import {
   MoreVert,
   AccountTree,
   PriorityHigh,
+  SortRounded,
+  Restore,
+  ContentPasteOutlined,
+  ContentCopy,
+  LinkOutlined,
+  Bolt,
+  HourglassTop,
+  CalendarToday,
 } from "@mui/icons-material";
 import { useState } from "react";
 
@@ -41,9 +51,11 @@ type AccordionItem = {
   checked?: boolean;
   description?: string;
   critical?: boolean;
+  time?: string;
   children?: AccordionItem[];
 };
 import Flow from "../Flow/Flow";
+import Sortable from "../Sortable/Sortable";
 
 interface MyAccordionProps {
   passedItems: {
@@ -136,6 +148,7 @@ export default function MyAccordion(props: MyAccordionProps) {
       const addNewItem = (items: AccordionItem[]) => {
         return items.map((item) => {
           if (item.id === parentId) {
+            console.log("FOUND PARENT", parentId);
             if (!item.children) {
               item.children = [];
             }
@@ -148,33 +161,32 @@ export default function MyAccordion(props: MyAccordionProps) {
         });
       };
       const updatedItems = addNewItem(jsonitems);
-      setItems(updatedItems);
       setExpanded([...expanded, parentId]);
       props.itemsChangedCallback(updatedItems, updatedDeletedList);
     }
   }
   function handleDeleteItem(lastClickedId: string) {
-    if (lastClickedId) {
-      var deletedItemObject = null;
-      const deleteItem = (items: AccordionItem[], parentId: string) => {
-        return items.filter((item) => {
-          if (item.id === lastClickedId) {
-            deletedItemObject = { parentId: parentId, item: item };
-            return false;
-          }
-          if (item.children) {
-            item.children = deleteItem(item.children, item.id);
-          }
-          return true;
-        });
-      };
-      const updatedItems = deleteItem(jsonitems, "");
-      setItems(updatedItems);
-      props.itemsChangedCallback(
-        updatedItems,
-        deletedItemObject ? [deletedItemObject] : undefined
-      );
-    }
+    console.log("Deleting ", lastClickedId);
+    var deletedItemObject = null;
+    const deleteItem = (items: AccordionItem[], parentId: string) => {
+      return items.filter((item) => {
+        if (item.id === lastClickedId) {
+          deletedItemObject = { parentId: parentId, item: item };
+          return false;
+        }
+        if (item.children) {
+          item.children = deleteItem(item.children, item.id);
+        }
+        return true;
+      });
+    };
+    deleteItem([...jsonitems], "");
+    console.log(deletedItemObject);
+    // setItems(updatedItems);
+    props.itemsChangedCallback(
+      jsonitems,
+      deletedItemObject ? [deletedItemObject] : undefined
+    );
   }
 
   const handleItemLabelChange = (id: string, label: string) => {
@@ -242,6 +254,13 @@ export default function MyAccordion(props: MyAccordionProps) {
     const newItems = updateItems(jsonitems);
     setItems(newItems);
     props.itemsChangedCallback(newItems);
+
+    setDescription("");
+    setDescriptionId(id);
+    let linksfound: string[] = [];
+
+    setLinks(linksfound);
+    setShowDialog(true);
   };
 
   const handleMakeCritical = (id: string) => {
@@ -261,13 +280,47 @@ export default function MyAccordion(props: MyAccordionProps) {
     props.itemsChangedCallback(newItems);
   };
 
+  const handleSetTime = (id: string, time: string) => {
+    console.log("handleSetTime", id, time);
+    const updateItems = (items: AccordionItem[]): AccordionItem[] => {
+      return items.map((item) => {
+        if (item.id === id) {
+          return { ...item, time: time };
+        }
+        if (item.children) {
+          return { ...item, children: updateItems(item.children) };
+        }
+        return item;
+      });
+    };
+    const newItems = updateItems(jsonitems);
+    console.log("=================", newItems);
+    setItems(newItems);
+
+    props.itemsChangedCallback(newItems);
+  };
+
+  function getTimeIcon(time: string) {
+    if (time === "5 min") {
+      return <Bolt color="success" />;
+    } else if (time === "1 hour") {
+      return <HourglassTop color="warning" />;
+    } else {
+      return <CalendarToday color="error" />;
+    }
+  }
+
   const [expanded, setExpanded] = React.useState<string[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState<string>("");
 
   var doubleClickTimeout: NodeJS.Timeout | null = null;
 
-  function recursiveItems(item: AccordionItem, depth: number) {
+  function recursiveItems(
+    item: AccordionItem,
+    depth: number,
+    parentId: string
+  ) {
     depth = depth + 1;
 
     const handleCheckboxChange = (
@@ -276,9 +329,98 @@ export default function MyAccordion(props: MyAccordionProps) {
       handleCheckChange(item.id, event.target.checked);
     };
 
+    function titlewidget() {
+      return editing === item.id ? (
+        <ClickAwayListener
+          onClickAway={() => {
+            setEditing(null);
+            handleItemLabelChange(item.id, newTitle);
+          }}
+        >
+          <TextField
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            autoFocus
+            onFocus={(e) => e.target.select()}
+            onBlur={() => {
+              setEditing(null);
+              handleItemLabelChange(item.id, newTitle);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                // Trigger submit logic here
+                setEditing(null);
+                handleItemLabelChange(item.id, newTitle);
+                (event.target as HTMLInputElement).blur();
+              }
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              event.preventDefault();
+            }}
+          />
+        </ClickAwayListener>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div
+            onDoubleClick={() => {
+              setNewTitle(item.label);
+              setEditing(item.id);
+            }}
+            onMouseDown={(event) => {
+              let sortingtimout = setTimeout(() => {
+                setSortingId(parentId);
+              }, 500);
+
+              const startTime = Date.now();
+              const handleMouseUp = () => {
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                if (duration < 500) {
+                  clearTimeout(sortingtimout);
+                  if (!editing) {
+                    if (doubleClickTimeout) {
+                      clearTimeout(doubleClickTimeout);
+                      doubleClickTimeout = null;
+                    } else {
+                      const timeout = setTimeout(() => {
+                        setExpanded(
+                          expanded.includes(item.id)
+                            ? expanded.filter((id) => id !== item.id)
+                            : [...expanded, item.id]
+                        );
+                      }, 200); // adjust the timeout value as needed
+                      doubleClickTimeout = timeout;
+                    }
+                  }
+                }
+              };
+              document.addEventListener("mouseup", handleMouseUp, {
+                once: true,
+              });
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            {depth === 1 ? <h2>{item.label}</h2> : <div>{item.label}</div>}
+          </div>
+        </div>
+      );
+    }
+    const {
+      checkedCount,
+      totalChildren,
+      uncheckedChildrenLabels,
+      containsCritical,
+    } = countCheckedAndTotalChildren(item.children);
+
     if (!item.children || item.children.length === 0) {
       return (
-        <div key={item.id} style={{ display: "flex", alignItems: "center" }}>
+        <div
+          key={item.id}
+          style={{ display: "flex", alignItems: "center", width: "100%" }}
+        >
           <div>
             <Checkbox
               checked={item.checked}
@@ -289,6 +431,7 @@ export default function MyAccordion(props: MyAccordionProps) {
             <PriorityHigh style={{ color: "red" }} />
           )}
           {titlewidget()}
+          {item.time && getTimeIcon(item.time)}
           <div>
             <IconButton
               onClick={(event) => {
@@ -322,6 +465,15 @@ export default function MyAccordion(props: MyAccordionProps) {
                       handleCloseMenu();
                     },
                   },
+                  {
+                    label: "Estimate Time",
+                    onClick: (event: any) => {
+                      setSelectedItemId(item.id); // Set the selectedItemId to the current
+                      console.log("selectedItemId", selectedItemId);
+                      setEstimateTimeMenuAnchorEl(event.currentTarget);
+                      setEstimateTimeMenuOpen(true);
+                    },
+                  },
                 ]);
               }}
             >
@@ -331,7 +483,10 @@ export default function MyAccordion(props: MyAccordionProps) {
           {item.description && (
             <div>
               <IconButton
-                onClick={() => {
+                tabIndex={-1}
+                onFocus={(event) => console.log("Button stole focus")}
+                onClick={(e) => {
+                  e.preventDefault();
                   setDescription(item.description!);
                   setDescriptionId(item.id);
                   let linksfound: string[] = [];
@@ -346,82 +501,34 @@ export default function MyAccordion(props: MyAccordionProps) {
               >
                 <ChatBubble />
               </IconButton>
+              {item.description.includes("http") &&
+                item.description
+                  .split("\n")
+                  .filter((line) => line.trim().startsWith("http"))
+                  .map((link) => {
+                    return (
+                      <IconButton onClick={() => window.open(link, "_blank")}>
+                        <LinkOutlined />
+                      </IconButton>
+                    );
+                  })}
             </div>
           )}
         </div>
       );
     }
 
-    function titlewidget() {
-      return editing === item.id ? (
-        <ClickAwayListener onClickAway={() => setEditing(null)}>
-          <TextField
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            autoFocus
-            onFocus={(e) => e.target.select()}
-            onBlur={() => {
-              setEditing(null);
-              handleItemLabelChange(item.id, newTitle);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                // Trigger submit logic here
-                setEditing(null);
-                handleItemLabelChange(item.id, newTitle);
-                (event.target as HTMLInputElement).blur();
-              }
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-              event.preventDefault();
-            }}
-          />
-        </ClickAwayListener>
-      ) : (
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <div
-            onDoubleClick={() => {
-              setNewTitle(item.label);
-              setEditing(item.id);
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-              if (!editing) {
-                if (doubleClickTimeout) {
-                  clearTimeout(doubleClickTimeout);
-                  doubleClickTimeout = null;
-                } else {
-                  const timeout = setTimeout(() => {
-                    setExpanded(
-                      expanded.includes(item.id)
-                        ? expanded.filter((id) => id !== item.id)
-                        : [...expanded, item.id]
-                    );
-                  }, 200); // adjust the timeout value as needed
-                  doubleClickTimeout = timeout;
-                }
-              }
-            }}
-          >
-            {depth === 1 ? <h2>{item.label}</h2> : <div>{item.label}</div>}
-          </div>
-        </div>
-      );
+    if (checkedCount > 0 && checkedCount == totalChildren) {
+      item.checked = true;
+    } else {
+      item.checked = false;
     }
-    const {
-      checkedCount,
-      totalChildren,
-      uncheckedChildrenLabels,
-      containsCritical,
-    } = countCheckedAndTotalChildren(item.children);
-
     return (
       <Accordion
         key={item.id}
         style={{
-          paddingLeft: "30px",
           borderLeft: `5px solid #ADD8E6`,
+          boxSizing: "border-box",
         }}
         expanded={expanded.includes(item.id)}
       >
@@ -439,7 +546,7 @@ export default function MyAccordion(props: MyAccordionProps) {
             }
           }}
         >
-          <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
             <div>{titlewidget()}</div>
             <Stack style={{ paddingLeft: "10px" }}>
               <LinearProgress
@@ -460,22 +567,91 @@ export default function MyAccordion(props: MyAccordionProps) {
               )}
             </Stack>
           </div>
-          <div>
-            <IconButton
-              onClick={() => {
-                setFlowItem(item as object);
-                setShowFlow(true);
-              }}
-            >
-              <AccountTree />
-            </IconButton>
-          </div>
+          <IconButton
+            onClick={(event) => {
+              event.stopPropagation();
+              handleOpenMenu(event, [
+                {
+                  label: "Flow Chart",
+                  onClick: (event) => {
+                    event.stopPropagation();
+
+                    setFlowItem(item as object);
+                    setShowFlow(true);
+                  },
+                },
+                {
+                  label: "Sort Children",
+                  onClick: (event) => {
+                    event.stopPropagation();
+
+                    if (!expanded.includes(item.id)) {
+                      setExpanded((previous) => {
+                        return [...previous, item.id];
+                      });
+                    }
+                    setSortingId(item.id);
+                    handleCloseMenu();
+                  },
+                },
+
+                {
+                  label: "Delete Item",
+                  onClick: () => {
+                    handleDeleteItem(item.id);
+                    handleCloseMenu();
+                  },
+                },
+              ]);
+            }}
+          >
+            <MoreVert />
+          </IconButton>
+         
         </AccordionSummary>
-        <AccordionDetails>
-          {item?.children &&
+        <AccordionDetails draggable onDragOver={(e) => console.log(e)}>
+          {item.id === sortingId ? (
+            <ClickAwayListener onClickAway={() => setSortingId("")}>
+              <div>
+                <Sortable
+                  data={{ items: item.children }}
+                  itemsChangedCallback={(sortedItems: object[]) => {
+                    console.log(sortedItems);
+                    const updateItemChildren = (
+                      items: AccordionItem[],
+                      newChildren: AccordionItem[]
+                    ): AccordionItem[] => {
+                      return items.map((iterationItem) => {
+                        if (iterationItem.id === item.id) {
+                          return { ...iterationItem, children: newChildren };
+                        } else if (iterationItem.children) {
+                          return {
+                            ...iterationItem,
+                            children: updateItemChildren(
+                              iterationItem.children,
+                              newChildren
+                            ),
+                          };
+                        }
+                        return iterationItem;
+                      });
+                    };
+                    const newItems = updateItemChildren(
+                      jsonitems,
+                      sortedItems as AccordionItem[]
+                    );
+                    setItems(newItems);
+                    props.itemsChangedCallback(newItems);
+                  }}
+                />
+              </div>
+            </ClickAwayListener>
+          ) : (
+            item?.children &&
             item.children.map((child: AccordionItem) =>
-              recursiveItems(child, depth)
-            )}
+              recursiveItems(child, depth, item.id)
+            )
+          )}
           <div>
             <Button onClick={() => handleAddNewSubItem(item.id)}>
               <Add />
@@ -485,6 +661,7 @@ export default function MyAccordion(props: MyAccordionProps) {
       </Accordion>
     );
   }
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleOpenMenu = (
@@ -501,19 +678,19 @@ export default function MyAccordion(props: MyAccordionProps) {
 
   function removeAllCompleteItems() {
     let removedItems: { item: AccordionItem; parentId: string }[] = [];
-    const removeCheckedItems = (items: AccordionItem[]) => {
+    const removeCheckedItems = (items: AccordionItem[], parentId: string) => {
       return items.filter((item) => {
         if (item.checked) {
-          removedItems.push({ item: item, parentId: "" });
+          removedItems.push({ item: item, parentId: parentId });
           return false;
         }
         if (item.children) {
-          item.children = removeCheckedItems(item.children);
+          item.children = removeCheckedItems(item.children, item.id);
         }
         return true;
       });
     };
-    const newItems = removeCheckedItems(jsonitems);
+    const newItems = removeCheckedItems(jsonitems, "");
     setItems(newItems);
 
     props.itemsChangedCallback(newItems, removedItems);
@@ -521,7 +698,7 @@ export default function MyAccordion(props: MyAccordionProps) {
 
   const [anchorElDeleted, setAnchorElDeleted] =
     React.useState<null | HTMLElement>(null);
-  const handleClickDeleted = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleClickRestore = (event: React.MouseEvent<HTMLDivElement>) => {
     setAnchorElDeleted(event.currentTarget);
   };
   const handleCloseDeleted = () => {
@@ -534,8 +711,39 @@ export default function MyAccordion(props: MyAccordionProps) {
 
   const [showFlow, setShowFlow] = React.useState(false);
   const [flowitem, setFlowItem] = React.useState<object>();
+  const [sortingId, setSortingId] = React.useState<string>("");
+  const [estimateTimeMenuOpen, setEstimateTimeMenuOpen] = React.useState(false);
+  const [estimateTimeMenuAnchorEl, setEstimateTimeMenuAnchorEl] =
+    React.useState<null | HTMLElement>(null);
+  const [selectedItemId, setSelectedItemId] = React.useState<string>("");
+
   return (
     <>
+      <Menu
+        open={estimateTimeMenuOpen}
+        anchorEl={estimateTimeMenuAnchorEl}
+        onClose={() => setEstimateTimeMenuOpen(false)}
+        MenuListProps={{
+          "aria-labelledby": "basic-button",
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            console.log(selectedItemId);
+            handleSetTime(selectedItemId, "5 min");
+          }}
+        >
+          5 min
+        </MenuItem>
+        <MenuItem onClick={() => handleSetTime(selectedItemId, "1 hour")}>
+          An hour
+        </MenuItem>
+        <MenuItem
+          onClick={() => handleSetTime(selectedItemId, "multiple days")}
+        >
+          Multiple Days
+        </MenuItem>
+      </Menu>
       <Dialog
         open={showFlow}
         onClose={() => setShowFlow(false)}
@@ -550,14 +758,32 @@ export default function MyAccordion(props: MyAccordionProps) {
         </div>
       </Dialog>
       <Dialog
+        fullWidth
+        maxWidth="lg"
         open={showDialog}
         onClose={() => {
+          console.log("closing dialog");
           setShowDialog(false);
           handleUpdateDescription(descriptionId, description);
         }}
       >
-        <DialogTitle>
+        <DialogTitle>Description</DialogTitle>
+        <DialogContent>
           <TextField
+            maxRows={6}
+            onFocus={(e) => {
+              console.log("Focusing!!! ", document.activeElement);
+              console.log("Event target: ", e.target);
+              setTimeout(() => {
+                e.target.focus();
+              }, 0);
+            }}
+            onBlur={(e) => {
+              console.log("Bluring!!! ", document.activeElement);
+              console.log("Event target: ", e.target);
+              console.log("Related target: ", e.relatedTarget);
+              console.log("Current target: ", e.currentTarget);
+            }}
             autoFocus
             fullWidth
             multiline
@@ -573,15 +799,24 @@ export default function MyAccordion(props: MyAccordionProps) {
               setDescription(e.target.value);
             }}
           ></TextField>
-        </DialogTitle>
-        <DialogContent>
+        </DialogContent>
+        <DialogActions>
           {links &&
             links.map((link, index) => (
               <IconButton onClick={() => window.open(link, "_blank")}>
-                {index}
+                <LinkOutlined />{" "}
               </IconButton>
             ))}
-        </DialogContent>
+          <IconButton
+            onClick={() => {
+              navigator.clipboard.readText().then((text) => {
+                setDescription(description + "\n" + text);
+              });
+            }}
+          >
+            <ContentPasteOutlined />
+          </IconButton>
+        </DialogActions>
       </Dialog>
       <SpeedDial
         ariaLabel="SpeedDial basic example"
@@ -594,17 +829,12 @@ export default function MyAccordion(props: MyAccordionProps) {
           tooltipTitle="Collapse"
           onClick={() => setExpanded([])}
         />
+
         <SpeedDialAction
-          key="Add"
-          icon={<Add />}
-          tooltipTitle="Add"
-          onClick={() => handleAddNewSubItem("")}
-        />
-        <SpeedDialAction
-          key="Delete"
-          icon={<DeleteForever />}
-          tooltipTitle="Delete"
-          onClick={(event) => handleClickDeleted(event)}
+          key="restore"
+          icon={<Restore />}
+          tooltipTitle="Restore"
+          onClick={(event) => handleClickRestore(event)}
         />
         <SpeedDialAction
           key="Done"
@@ -656,8 +886,10 @@ export default function MyAccordion(props: MyAccordionProps) {
             </MenuItem>
           ))}
       </Menu>
-      <div style={{ padding: "20px" }}>
-        {jsonitems.map((item: AccordionItem) => recursiveItems(item, 0))}
+      <div style={{ padding: "20px", width: "100%", boxSizing: "border-box" }}>
+        {jsonitems.map((item: AccordionItem) =>
+          recursiveItems(item, 0, "root")
+        )}
       </div>
       <Button
         style={{ margin: "20px" }}
